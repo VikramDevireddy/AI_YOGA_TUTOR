@@ -37,22 +37,22 @@ const UpcomingActivity = () => {
 <div className='grid grid-cols-1 w-full gap-8 md:grid-cols-3'>
   {data.map((w)=>
   // eslint-disable-next-line react/jsx-key
-  <div className='w-full bg-white rounded-md'>
-  <div className=''>
-    <img src={w.imag} alt="" className='w-full h-44 rounded-lg'/>
-    <div className='flex flex-row items-center gap-16 w-full'>
-      <div className='flex flex-col items-center'>
-      <h2><b>{w.title}</b></h2>
-      <h1>days left</h1>
+  <div className='w-full overflow-hidden rounded-md bg-white shadow-sm'>
+    <img src={w.imag} alt="" className='w-full h-44 object-cover rounded-t-md' />
+    <div className='p-4'>
+      <div className='flex flex-col gap-4 md:flex-row md:items-center md:justify-between'>
+        <div className='flex flex-col items-start'>
+          <h2 className='text-lg font-semibold'>{w.title}</h2>
+          <p className='text-sm text-slate-500'>days left</p>
+        </div>
+        <div>
+          <a href={w.url} target="_blank" rel="noreferrer" className='inline-flex rounded-md bg-blue-500 px-4 py-2 text-white hover:bg-blue-600'>
+            join
+          </a>
+        </div>
       </div>
-    <div>
-      <a href = {w.url} target = "_blank" className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600">
-          join
-        </a>
     </div>
-    </div>
-  </div>
-</div>)}
+  </div>)}
 </div>
 
   )

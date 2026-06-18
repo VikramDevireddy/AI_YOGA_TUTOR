@@ -25,24 +25,24 @@ const Contact = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div className="col-span-1">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
             <label className="block font-semibold mb-1 text-black">Full Name *</label>
             <input type="text" className="w-full p-2 border border-gray-300 rounded-md text-black bg-white" />
           </div>
-          <div className="col-span-1">
+          <div>
             <label className="block font-semibold mb-1 text-black">E mail *</label>
             <input type="email" className="w-full p-2 border border-gray-300 rounded-md text-black bg-white" />
           </div>
-          <div className="col-span-1">
+          <div>
             <label className="block font-semibold mb-1 text-black">Age *</label>
             <input type="number" className="w-full p-2 border border-gray-300 rounded-md text-black bg-white" />
           </div>
-          <div className="col-span-1">
+          <div>
             <label className="block font-semibold mb-1 text-black">Phone *</label>
             <input type="text" className="w-full p-2 border border-gray-300 rounded-md text-black bg-white" />
           </div>
-          <div className="col-span-2">
+          <div className="sm:col-span-2">
             <label className="block font-semibold mb-1 text-black">Message *</label>
             <textarea className="w-full p-2 border border-gray-300 rounded-md h-24 text-black bg-white"></textarea>
           </div>

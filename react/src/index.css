@@ -21,9 +21,9 @@
 }
 
 .common-height{
-  height: calc(100vh - 48px);
+  min-height: calc(100vh - 48px);
 }
 .unsecured-common-height{
-  height: calc(100vh - 66px);
+  min-height: calc(100vh - 66px);
 }
 

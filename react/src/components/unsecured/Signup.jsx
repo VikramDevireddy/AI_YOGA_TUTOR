@@ -24,8 +24,8 @@ const Signup = () => {
   const navigate = useNavigate();
 
   return (
-    <div className='unsecured-common-height flex items-center justify-center w-full h-full bg-primary my-10'>
-      <div className='flex items-center justify-center gap-6 min-w-[60%] bg-gray-200 rounded-lg bg-clip-padding backdrop-filter backdrop-blur-lg bg-opacity-20 border border-gray-100'>
+    <div className='unsecured-common-height flex items-center justify-center w-full bg-primary py-10 px-4'>
+      <div className='flex w-full max-w-6xl flex-col gap-6 overflow-hidden rounded-3xl bg-gray-200 bg-clip-padding backdrop-filter backdrop-blur-lg bg-opacity-20 border border-gray-100 md:flex-row'>
         <div className='flex-1 p-8'>
           <h2 className='text-xl font-semibold mb-4 text-center'>Signup</h2>
           <Formik
@@ -57,127 +57,141 @@ const Signup = () => {
             }}
           >
             {({ isSubmitting, setFieldValue }) => (
-              <Form>
-                <div className='flex gap-5'>
-                  <div className='mb-3'>
-                    <label htmlFor='firstName' className='block text-gray-700'>Firstname</label>
+              <Form className='space-y-4'>
+                <div className='grid grid-cols-1 sm:grid-cols-2 gap-4'>
+                  <div>
+                    <label htmlFor='firstName' className='block text-gray-700 font-medium text-sm mb-2'>First Name</label>
                     <Field
                       type='text'
                       id='firstName'
                       name='firstName'
-                      className='mt-1 p-2 w-full border rounded'
-                      placeholder='Enter Firstname'
+                      className='w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition text-base'
+                      placeholder='Enter First Name'
+                      autoComplete='given-name'
                     />
-                    <ErrorMessage name='firstName' component='div' className='text-red-600 text-sm mt-1' />
+                    <ErrorMessage name='firstName' component='div' className='text-red-600 text-sm mt-2 font-medium' />
                   </div>
 
-                  <div className='mb-3'>
-                    <label htmlFor='lastName' className='block text-gray-700'>Lastname</label>
+                  <div>
+                    <label htmlFor='lastName' className='block text-gray-700 font-medium text-sm mb-2'>Last Name</label>
                     <Field
                       type='text'
                       id='lastName'
                       name='lastName'
-                      className='mt-1 p-2 w-full border rounded'
-                      placeholder='Enter Lastname'
+                      className='w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition text-base'
+                      placeholder='Enter Last Name'
+                      autoComplete='family-name'
                     />
-                    <ErrorMessage name='lastName' component='div' className='text-red-600 text-sm mt-1' />
+                    <ErrorMessage name='lastName' component='div' className='text-red-600 text-sm mt-2 font-medium' />
                   </div>
                 </div>
 
-                <div className='mb-3'>
-                  <label htmlFor='userName' className='block text-gray-700'>Username</label>
+                <div>
+                  <label htmlFor='userName' className='block text-gray-700 font-medium text-sm mb-2'>Username</label>
                   <Field
                     type='text'
                     id='userName'
                     name='userName'
-                    className='mt-1 p-2 w-full border rounded'
-                    placeholder='Enter Username'
+                    className='w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition text-base'
+                    placeholder='Choose a Username'
+                    autoComplete='username'
                   />
-                  <ErrorMessage name='userName' component='div' className='text-red-600 text-sm mt-1' />
+                  <ErrorMessage name='userName' component='div' className='text-red-600 text-sm mt-2 font-medium' />
                 </div>
 
-                <div className='mb-3'>
-                  <label htmlFor='email' className='block text-gray-700'>Email</label>
+                <div>
+                  <label htmlFor='email' className='block text-gray-700 font-medium text-sm mb-2'>Email</label>
                   <Field
                     type='email'
                     id='email'
                     name='email'
-                    className='mt-1 p-2 w-full border rounded'
+                    className='w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition text-base'
                     placeholder='Enter Email'
+                    autoComplete='email'
                   />
-                  <ErrorMessage name='email' component='div' className='text-red-600 text-sm mt-1' />
+                  <ErrorMessage name='email' component='div' className='text-red-600 text-sm mt-2 font-medium' />
                 </div>
 
-                <div className='mb-3'>
-                  <label htmlFor='phone' className='block text-gray-700'>Mobile Number</label>
+                <div>
+                  <label htmlFor='phone' className='block text-gray-700 font-medium text-sm mb-2'>Mobile Number</label>
                   <Field
-                    type='text'
+                    type='tel'
                     id='phone'
                     name='phone'
-                    className='mt-1 p-2 w-full border rounded'
-                    placeholder='Enter Mobile Number'
+                    className='w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition text-base'
+                    placeholder='Enter 10-digit Mobile Number'
+                    autoComplete='tel'
+                    inputMode='numeric'
                   />
-                  <ErrorMessage name='phone' component='div' className='text-red-600 text-sm mt-1' />
+                  <ErrorMessage name='phone' component='div' className='text-red-600 text-sm mt-2 font-medium' />
                 </div>
 
-                <div className='flex gap-5'>
-                  <div className='mb-3'>
-                    <label htmlFor='password' className='block text-gray-700'>Password</label>
+                <div className='grid grid-cols-1 sm:grid-cols-2 gap-4'>
+                  <div>
+                    <label htmlFor='password' className='block text-gray-700 font-medium text-sm mb-2'>Password</label>
                     <Field
                       type='password'
                       id='password'
                       name='password'
-                      className='mt-1 p-2 w-full border rounded'
-                      placeholder='Enter Password'
+                      className='w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition text-base'
+                      placeholder='Min. 8 characters'
+                      autoComplete='new-password'
                     />
-                    <ErrorMessage name='password' component='div' className='text-red-600 text-sm mt-1' />
+                    <ErrorMessage name='password' component='div' className='text-red-600 text-sm mt-2 font-medium' />
                   </div>
 
-                  <div className='mb-3'>
-                    <label htmlFor='confirmPassword' className='block text-gray-700'>Confirm Password</label>
+                  <div>
+                    <label htmlFor='confirmPassword' className='block text-gray-700 font-medium text-sm mb-2'>Confirm Password</label>
                     <Field
                       type='password'
                       id='confirmPassword'
                       name='confirmPassword'
-                      className='mt-1 p-2 w-full border rounded'
-                      placeholder='Enter Confirm Password'
+                      className='w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition text-base'
+                      placeholder='Re-enter Password'
+                      autoComplete='new-password'
                     />
-                    <ErrorMessage name='confirmPassword' component='div' className='text-red-600 text-sm mt-1' />
+                    <ErrorMessage name='confirmPassword' component='div' className='text-red-600 text-sm mt-2 font-medium' />
                   </div>
                 </div>
 
-                <div className='mb-3'>
-                  <label htmlFor='photo' className='block text-gray-700'>Upload Photo</label>
+                <div>
+                  <label htmlFor='photo' className='block text-gray-700 font-medium text-sm mb-2'>Profile Photo</label>
                   <input
                     id='photo'
                     name='photo'
                     type='file'
                     accept='image/*'
-                    className='mt-1 p-2 w-full border rounded'
+                    className='w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition text-base cursor-pointer'
                     onChange={(event) => {
                       setFieldValue('photo', event.currentTarget.files[0]);
                     }}
                   />
-                  <ErrorMessage name='photo' component='div' className='text-red-600 text-sm mt-1' />
+                  <ErrorMessage name='photo' component='div' className='text-red-600 text-sm mt-2 font-medium' />
                 </div>
 
                 <button
                   type='submit'
-                  className='w-full bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700'
+                  className='w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 px-4 rounded-lg hover:shadow-lg hover:from-blue-700 hover:to-blue-800 transition duration-200 font-semibold text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2'
                   disabled={isSubmitting}
                 >
-                  Signup
+                  Create Account
                 </button>
-                <div className='flex gap-2 justify-center mt-5'>
-                  <span className='font-semibold'>New user?</span>
-                  <span className='underline text-blue-600 hover:cursor-pointer' onClick={() => navigate('/')}> Login</span>
+                <div className='flex gap-2 justify-center mt-6'>
+                  <span className='font-semibold text-sm text-gray-700'>Already have an account?</span>
+                  <button 
+                    type='button'
+                    className='underline text-blue-600 hover:text-blue-700 font-medium text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 rounded px-2 py-1' 
+                    onClick={() => navigate('/')}
+                  >
+                    Login
+                  </button>
                 </div>
               </Form>
             )}
           </Formik>
         </div>
-        <div className='w-1/2'>
-          <img src={loginImg} alt='Login Illustration' className='w-full object-cover rounded-tr-lg rounded-br-lg h-full' />
+        <div className='w-full md:w-1/2'>
+          <img src={loginImg} alt='Signup Illustration' className='w-full max-h-96 object-cover rounded-b-3xl md:rounded-r-3xl md:rounded-bl-none md:max-h-full' />
         </div>
       </div>
     </div>

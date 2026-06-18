@@ -16,7 +16,7 @@ import Yoga from "./pages/Yoga/Yoga";
 
 function App() {
   return (
-    <div className='bg-primary h-screen'>
+    <div className='bg-primary min-h-screen'>
         <Routes>
       
           <Route path="/" element={<UnsecuredNavigation />}>

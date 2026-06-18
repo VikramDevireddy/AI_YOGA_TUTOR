@@ -12,17 +12,16 @@ export default function Instructions({ currentPose }) {
 
     return (
         <div className="instructions-container">
-            <ul className="instructions-list bg-black text-white ">
+            <ul className="instructions-list bg-black text-white">
                 {instructions[currentPose]?.map((instruction, index) => {
                     return(
-                        <li key = {index} className="instruction">{instruction}</li>
+                        <li key={index} className="instruction">{instruction}</li>
                     )
-                    
                 })}
             </ul>
             <img 
-                className="pose-demo-img mr-16"
-                alt = "Yoga poses Loading ..."
+                className="pose-demo-img"
+                alt="Yoga poses Loading ..."
                 src={poseImages[currentPose]}
             />
         </div>

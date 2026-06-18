@@ -98,30 +98,32 @@ const DaysPlan = () => {
 
   const navigation = useNavigate();
   return (
-    <div className="w-full h-auto max-h-screen overflow-y-auto p-4">
-      {data.map((w) => (
-        <div key={w.id} className="w-full mb-4 shadow-lg">
-          <h1 className="text-2xl font-bold text-blue-500">Day-{w.id}</h1>
-          <div className="flex flex-col justify-between items-center border border-blue-400 text-black text-xl rounded-lg p-4 text-center shadow-lg md:flex-row md:flex-wrap">
-            <div className="flex-shrink-0">
-              <img
-                src={w.imag}
-                alt={w.title}
-                className="w-28 h-28 rounded-md shadow-2xl object-cover"
-              />
-            </div>
-            <div className="flex-grow mt-4 md:mt-0 md:ml-4">
-              <h2 className="mt-0">{w.title}</h2>
-              <p className="mt-4">{w.benefit}</p>
-            </div>
-            <div className="mr-4 mt-4 md:mt-0">
-              <button className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600" onClick={()=>navigation("/secured/home/startworkout",{state:{data:w}})}>
+    <div className="w-full p-4 sm:p-6 lg:p-8">
+      <div className="space-y-6">
+        {data.map((w) => (
+          <div key={w.id} className="rounded-3xl border border-slate-300 bg-white p-5 shadow-sm transition hover:shadow-lg">
+            <div className="flex flex-col gap-5 text-center md:flex-row md:items-center md:justify-between md:text-left">
+              <div className="flex flex-col items-center gap-4 md:flex-row md:items-center md:gap-6">
+                <img
+                  src={w.imag}
+                  alt={w.title}
+                  className="h-28 w-28 rounded-3xl object-cover shadow-lg"
+                />
+                <div>
+                  <h1 className="text-2xl font-bold text-blue-600">Day-{w.id}</h1>
+                  <h2 className="mt-2 text-xl font-semibold text-slate-900">{w.title}</h2>
+                  <p className="mt-3 text-sm leading-6 text-slate-600">{w.benefit}</p>
+                </div>
+              </div>
+              <button className="mx-auto mt-4 inline-flex rounded-full bg-blue-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-600 md:mx-0 md:mt-0"
+                onClick={() => navigation('/secured/home/startworkout', { state: { data: w } })}
+              >
                 Start Workout
               </button>
             </div>
           </div>
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
   );
 };

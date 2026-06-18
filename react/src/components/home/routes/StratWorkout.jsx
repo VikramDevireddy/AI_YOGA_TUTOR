@@ -6,7 +6,7 @@ const StratWorkout = () => {
     const location = useLocation();
     console.log(location?.state?.data)
   return (
-    <div>
+    <div className='min-h-screen w-full'>
       <Yoga/>
     </div>
   )

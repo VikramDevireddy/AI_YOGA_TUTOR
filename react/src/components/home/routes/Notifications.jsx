@@ -36,17 +36,20 @@ const Notifications = () => {
     handleSendEmail();
   },[])
   return (
-    <div className='flex justify-center items-center common-height'>
-      <div className='flex flex-col items-center'>
-        <FaWhatsapp size={40} color='black'/>
-      <button onClick={handleSendMessage}>
-        Send WhatsApp Message
-      </button>
+    <div className='min-h-screen flex items-center justify-center bg-gray-100 p-4'>
+      <div className='w-full max-w-md rounded-3xl bg-white p-6 shadow-xl'>
+        <div className='flex flex-col items-center gap-6'>
+          <FaWhatsapp size={48} color='green' />
+          <h1 className='text-xl font-semibold text-slate-900'>Notifications</h1>
+          <p className='text-center text-sm text-slate-600'>Tap the button to send a WhatsApp message with a prefilled text.</p>
+          <button
+            onClick={handleSendMessage}
+            className='w-full rounded-full bg-green-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-green-600'
+          >
+            Send WhatsApp Message
+          </button>
+        </div>
       </div>
-
-      {/* <button onClick={handleSendEmail}>
-        Send Email
-      </button> */}
     </div>
   );
 };

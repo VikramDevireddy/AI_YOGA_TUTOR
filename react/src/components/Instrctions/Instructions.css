@@ -1,16 +1,17 @@
 .instructions-list {
-    width: 40%;
-    border-radius: 8px;
+    width: 100%;
+    max-width: 640px;
+    border-radius: 16px;
     border: 5px solid rgba(255, 255, 255, 0.2);
-    padding: 10px;
+    padding: 18px;
     margin-top: 10px;
 }
 .instruction {
-    margin: 10px;
+    margin: 10px 0;
     letter-spacing: 0.5px;
     color: white;
     font-weight: 400;
-    margin-top: 20px;
+    line-height: 1.75;
 }
 
 .instructions-container {

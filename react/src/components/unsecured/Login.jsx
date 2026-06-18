@@ -17,8 +17,8 @@ const Login = () => {
   const navigate = useNavigate();
 
   return (
-    <div className='unsecured-common-height flex items-center justify-center w-full'>
-      <div className='flex gap-6  min-w-[60%] bg-gray-200 rounded-lg bg-clip-padding backdrop-filter backdrop-blur-lg bg-opacity-20 border border-gray-100'>
+    <div className='unsecured-common-height flex items-center justify-center w-full px-4 py-10'>
+      <div className='flex w-full max-w-5xl flex-col gap-6 overflow-hidden rounded-3xl bg-gray-200 bg-clip-padding backdrop-filter backdrop-blur-lg bg-opacity-20 border border-gray-100 md:flex-row'>
         <div className='flex-1 p-8'>
           <h2 className='text-xl font-semibold mb-4 text-center'>Login</h2>
           <Formik
@@ -62,49 +62,55 @@ const Login = () => {
           >
             {({ isSubmitting }) => (
               <Form>
-                <div className='mb-4'>
-                  <label htmlFor='email' className='block text-gray-700'>Email</label>
+                <div className='mb-6'>
+                  <label htmlFor='email' className='block text-gray-700 font-medium text-sm mb-2'>Email</label>
                   <Field
                     type='email'
                     id='email'
                     name='email'
-                    className='mt-1 p-2 w-full border rounded'
+                    className='mt-1 p-3 w-full border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition text-base'
                     placeholder="Enter email or username"
+                    autoComplete='email'
                   />
-                  <ErrorMessage name='email' component='div' className='text-red-600 text-sm mt-1' />
+                  <ErrorMessage name='email' component='div' className='text-red-600 text-sm mt-2 font-medium' />
                 </div>
 
                 <div className='mb-6'>
-                  <label htmlFor='password' className='block text-gray-700'>Password</label>
+                  <label htmlFor='password' className='block text-gray-700 font-medium text-sm mb-2'>Password</label>
                   <Field
                     type='password'
                     id='password'
                     name='password'
-                    className='mt-1 p-2 w-full border rounded'
+                    className='mt-1 p-3 w-full border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition text-base'
                     placeholder="Enter password"
+                    autoComplete='current-password'
                   />
-                  <ErrorMessage name='password' component='div' className='text-red-600 text-sm mt-1' />
+                  <ErrorMessage name='password' component='div' className='text-red-600 text-sm mt-2 font-medium' />
                 </div>
 
                 <button
                   type='submit'
-                  className='w-full bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700'
+                  className='w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 px-4 rounded-lg hover:shadow-lg hover:from-blue-700 hover:to-blue-800 transition duration-200 font-semibold text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2'
                   disabled={isSubmitting}
                 >
                   {text}
                 </button>
-                <div className='flex gap-2 justify-center mt-5'>
-                  <span className='font-semibold'>New user?</span>
-                  <span className='underline text-blue-600 hover:cursor-pointer' onClick={() => navigate("/sign-up")}>
+                <div className='flex gap-2 justify-center mt-6'>
+                  <span className='font-semibold text-sm text-gray-700'>New user?</span>
+                  <button 
+                    type='button'
+                    className='underline text-blue-600 hover:text-blue-700 font-medium text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 rounded px-2 py-1' 
+                    onClick={() => navigate("/sign-up")}
+                  >
                     Register
-                  </span>
+                  </button>
                 </div>
               </Form>
             )}
           </Formik>
         </div>
-        <div className='w-1/2'>
-          <img src={loginImg} alt="" className='h-96 w-full object-cover rounded-tr-lg rounded-br-lg' />
+        <div className='w-full md:w-1/2'>
+          <img src={loginImg} alt="Login Illustration" className='w-full max-h-96 object-cover rounded-b-3xl md:rounded-r-3xl md:rounded-bl-none md:max-h-full' />
         </div>
       </div>
     </div>

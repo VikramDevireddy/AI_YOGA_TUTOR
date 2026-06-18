@@ -30,29 +30,33 @@ useEffect(()=>{
   getCalories();
 },[])
   return (
-    <div className='w-full p-4 pr-20'>
+    <div className='w-full p-4 sm:p-6 lg:p-8'>
       <h1 className='text-2xl font-bold mb-4 text-center'>Recents</h1>
-      {/* <p className='mt-4 mb-2 font-bold text-xl'>You've Completed a 30mins Workout...!</p> */}
-      <div className='relative'>
-        <img 
-          src={bg} 
-          alt="Background" 
-          className='w-full h-auto object-fill rounded-lg max-h-72 shadow-2xl opacity-60' 
+      <div className='relative overflow-hidden rounded-3xl shadow-2xl'>
+        <img
+          src={bg}
+          alt='Background'
+          className='w-full h-auto max-h-96 object-cover opacity-80'
         />
-        <h1 className='absolute bottom-4 left-5 text-white text-2xl font-bold'>You've burned in your lastworkout {parseFloat(calories).toFixed(2)} calories</h1>
+        <div className='absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent px-4 py-6'>
+          <h1 className='text-lg sm:text-2xl font-bold text-white'>You've burned in your last workout {parseFloat(calories).toFixed(2)} calories</h1>
+        </div>
       </div>
-      <h1 className='font-bold mt-4'>1/30</h1>
-      <div className="w-full bg-gray-200 rounded-full h-2 mt-2 overflow-hidden">
-        <div
-          className="bg-blue-500 h-full"
-          style={{ width: `${percentage}%` }} 
-        />
-      </div>
-      <p className='mt-2'>Days Completed</p>
-      <div className='mt-2'>
-        <button className='float-right bg-blue-500 text-white px-4 py-2 rounded-lg'>
-          Continue →
-        </button>
+      <div className='mt-6 space-y-4'>
+        <div>
+          <div className='flex items-center justify-between gap-4'>
+            <p className='font-bold text-slate-900'>Progress</p>
+            <span className='text-sm text-slate-500'>1/30 days</span>
+          </div>
+          <div className='mt-2 w-full overflow-hidden rounded-full bg-gray-200 h-3'>
+            <div className='bg-blue-500 h-full transition-all duration-300' style={{ width: `${percentage}%` }} />
+          </div>
+        </div>
+        <div className='flex justify-end'>
+          <button className='rounded-full bg-blue-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-600'>
+            Continue →
+          </button>
+        </div>
       </div>
     </div>
   );

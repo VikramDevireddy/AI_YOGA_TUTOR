@@ -11,11 +11,13 @@ const MainNavigationBar = () => {
 
   ]
   return (
-    <div className='flex  justify-end gap-10 py-3 px-16'>
+    <div className='flex flex-wrap justify-center gap-4 py-3 px-4 sm:px-6 lg:px-16'>
       {
         links?.map(link=>{
           return (
-          <NavLink key={link.id} to={link.path}>{link.name}</NavLink>
+          <NavLink key={link.id} to={link.path} className='text-sm font-medium text-slate-700 hover:text-blue-700'>
+            {link.name}
+          </NavLink>
           );
         })
       }
