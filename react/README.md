@@ -1,11 +1,31 @@
-# React + Vite
+# AI Yoga Tutor
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+An AI-powered yoga assistant that uses Google MoveNet for real-time pose detection and classification.
 
-Currently, two official plugins are available:
+## Tech Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+**Frontend:** React 18, Vite, TailwindCSS, TensorFlow.js, MoveNet  
+**Backend:** Node.js, Express, MongoDB Atlas, Nodemailer, JWT
 
-username: vikramdevireddy888@gmail.com
-password : 12345678
+## Getting Started
+
+### Frontend
+```bash
+cd react
+npm install
+cp .env.example .env
+# Edit .env with your API URL
+npm run dev
+```
+
+### Backend
+```bash
+cd backend/vedic-vision-backend
+npm install
+cp .env.example .env
+# Edit .env with your credentials
+npm start
+```
+
+## Environment Variables
+See `.env.example` in `react/` and `backend/vedic-vision-backend/` for required variables.
