@@ -1,34 +1,25 @@
 import React, { useEffect, useState } from 'react';
 import bg from '../../../assets/bg.jpg';
-import axios from 'axios';
+import api from '../../../services/api';
 
 const Recents = () => {
-  const progress = 1; 
-  const goal = 30; 
+  const progress = 1;
+  const goal = 30;
   const percentage = (progress / goal) * 100; // Calculate the percentage
-  const [calories,setCalories] = useState(0);
+  const [calories, setCalories] = useState(0);
 
-  const getCalories = async() =>{
-    const data = {
-      userId: localStorage.getItem("userId"),
-
+  const getCalories = async () => {
+    try {
+      const res = await api.post("/api/user/fetchyogadata")
+      setCalories(res?.data?.totalCalories);
+      console.log(res?.data);
+    } catch (error) {
+      console.error(error);
     }
-      try {
-        const res = await axios.post("https://vedic-vision-backend.onrender.com/api/user/fetchyogadata",data,{
-          headers:{
-            'Content-Type': 'application/json',
-          }
-          
-        })
-        setCalories(res?.data?.totalCalories);
-        console.log(res?.data);
-      } catch (error) {
-        console.error(error);
-      }
   }
-useEffect(()=>{
-  getCalories();
-},[])
+  useEffect(() => {
+    getCalories();
+  }, [])
   return (
     <div className='w-full p-4 sm:p-6 lg:p-8'>
       <h1 className='text-2xl font-bold mb-4 text-center'>Recents</h1>

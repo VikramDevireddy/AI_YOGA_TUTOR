@@ -1,6 +1,7 @@
 // userRoutes.js
 const express = require('express');
-const { loginController, registerController, sendEmail, updateCalories, yogaFetchData } = require('../controllers/userController');
+const { loginController, registerController } = require('../controllers/authController');
+const { sendEmail, updateCalories, yogaFetchData } = require('../controllers/yogaController');
 const router = express.Router();
 const { protect } = require('../middlewares/authMiddleware');
 const multer = require('multer')

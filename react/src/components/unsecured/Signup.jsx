@@ -3,7 +3,7 @@ import { Formik, Form, Field, ErrorMessage } from 'formik';
 import * as Yup from 'yup';
 import loginImg from '../../assets/login.webp';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../../services/api';
 
 const Signup = () => {
   const validationSchema = Yup.object({
@@ -42,14 +42,14 @@ const Signup = () => {
                 formData.append('password', values.password);
                 formData.append('photo', values.photo); // Add the photo to the FormData object
                 formData.append('phone', values.phone); // Add mobile number to the FormData object
-                
-                const res = await axios.post('https://vedic-vision-backend.onrender.com/api/user/register', values, {
+
+                const res = await api.post('/api/user/register', values, {
                   headers: {
                     'Content-Type': 'application/json',
                   },
                 });
                 console.log(res);
-                if(res.status === 201) navigate("/login");
+                if (res.status === 201) navigate("/login");
                 // Handle success (e.g., navigate to another page)
               } catch (error) {
                 console.log(error);
@@ -178,9 +178,9 @@ const Signup = () => {
                 </button>
                 <div className='flex gap-2 justify-center mt-6'>
                   <span className='font-semibold text-sm text-gray-700'>Already have an account?</span>
-                  <button 
+                  <button
                     type='button'
-                    className='underline text-blue-600 hover:text-blue-700 font-medium text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 rounded px-2 py-1' 
+                    className='underline text-blue-600 hover:text-blue-700 font-medium text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 rounded px-2 py-1'
                     onClick={() => navigate('/')}
                   >
                     Login

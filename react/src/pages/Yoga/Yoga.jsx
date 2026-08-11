@@ -159,7 +159,10 @@ function Yoga() {
     };
   }, []);
 
+  const [isAiLoading, setIsAiLoading] = useState(false);
+
   const runMovenet = async () => {
+    setIsAiLoading(true);
     try {
       await tf.setBackend('webgpu');
       await tf.ready();
@@ -172,10 +175,13 @@ function Yoga() {
 
     const detectorConfig = { modelType: poseDetection.movenet.modelType.SINGLEPOSE_THUNDER };
     const detector = await poseDetection.createDetector(poseDetection.SupportedModels.MoveNet, detectorConfig);
-    const poseClassifier = await tf.loadLayersModel('https://models.s3.jp-tok.cloud-object-storage.appdomain.cloud/model.json');
+    const modelUrl = import.meta.env.VITE_AI_MODEL_URL || 'https://models.s3.jp-tok.cloud-object-storage.appdomain.cloud/model.json';
+    const poseClassifier = await tf.loadLayersModel(modelUrl);
 
     detectorRef.current = detector;
     classifierRef.current = poseClassifier;
+
+    setIsAiLoading(false);
 
     intervalRef.current = setInterval(() => {
       detectPose(detector, poseClassifier);
@@ -284,7 +290,7 @@ function Yoga() {
           return;
         }
 
-        const processedInput = landmarks_to_embedding(input);
+        const processedInput = tf.tidy(() => landmarks_to_embedding(input));
         const classification = poseClassifier.predict(processedInput);
 
         classification.array().then((data) => {
@@ -300,13 +306,17 @@ function Yoga() {
               correctPoseAudio.play();
             }
             setCurrentTime(new Date().getTime());
-            console.log(keypoints, "points true")
+            console.log(keypoints, "points true");
           } else {
             flagRef.current = false;
             skeletonColor = 'rgb(255,255,255)';
-            console.log(keypoints, "points false")
+            console.log(keypoints, "points false");
             giveDynamicFeedback(keypoints); // Call feedback function when the pose is incorrect
           }
+        }).finally(() => {
+          // Prevent memory leak
+          processedInput.dispose();
+          classification.dispose();
         });
       } catch (err) {
         console.error(err);
@@ -443,7 +453,13 @@ function Yoga() {
         <Instructions currentPose={currentPose} />
       </div>
       <div className="footer" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-        <button onClick={startYoga} className="primary-btn bg-black text-white px-10 py-2 mt-5 rounded-lg  font-semibold z-50">Start</button>
+        <button
+          onClick={isAiLoading ? null : startYoga}
+          className={`primary-btn bg-black text-white px-10 py-2 mt-5 rounded-lg font-semibold z-50 ${isAiLoading ? 'opacity-50 cursor-wait' : ''}`}
+          disabled={isAiLoading}
+        >
+          {isAiLoading ? 'Loading AI Model...' : 'Start'}
+        </button>
       </div>
     </div>
   );
