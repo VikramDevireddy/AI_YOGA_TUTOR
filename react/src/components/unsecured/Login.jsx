@@ -3,18 +3,20 @@ import { Formik, Form, Field, ErrorMessage } from 'formik';
 import * as Yup from 'yup';
 import loginImg from '../../assets/login.webp';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
 import 'react-toastify/dist/ReactToastify.css';
 import toast from 'react-hot-toast';
+import { useAuth } from '../../hooks/useAuth';
+import api from '../../services/api';
 
 const Login = () => {
-  const [text,setText] = useState("Login");
+  const [text, setText] = useState("Login");
   const validationSchema = Yup.object({
     email: Yup.string().email('Invalid email format').required('Email is required'),
     password: Yup.string().min(8, 'Password must be at least 8 characters long').required('Password is required'),
   });
 
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   return (
     <div className='unsecured-common-height flex items-center justify-center w-full px-4 py-10'>
@@ -27,27 +29,24 @@ const Login = () => {
             onSubmit={async (values) => {
               try {
                 setText("Loading...")
-                const res = await axios.post('https://vedic-vision-backend.onrender.com/api/user/login', {
+                const res = await api.post('/api/user/login', {
                   email: values.email,
                   password: values.password
-                }, {
-                  headers: {
-                    'Content-Type': 'application/json',
-                  },
                 });
 
                 console.log(res);
 
                 if (res.status === 200) {
-                  localStorage.setItem("username",res.data.userDetails.firstName+" "+res.data.userDetails.lastName);
-                  console.log("https://vedic-vision-backend.onrender.com/image/"+res.data.userDetails.photo)
-                  localStorage.setItem("userImg","https://vedic-vision-backend.onrender.com/upload/"+res.data.userDetails.photo);
-                  toast.success('Login successful!');
-                  localStorage.setItem("email",res.data.userDetails.email);
-                  localStorage.setItem("userId",res.data.userDetails.id);
-                  localStorage.setItem("phone",res.data.userDetails.phone);
-                  localStorage.setItem("calories",res.data.calories);
+                  login({
+                    token: res.data.token,
+                    userDetails: res.data.userDetails
+                  });
+                  localStorage.setItem("calories", res.data.calories);
 
+                  if (res.data.userDetails.photo) {
+                    localStorage.setItem("userImg", "https://vedic-vision-backend.onrender.com/upload/" + res.data.userDetails.photo);
+                  }
+                  toast.success('Login successful!');
                   navigate("/secured/home/recents");
                 }
               } catch (error) {
@@ -55,7 +54,7 @@ const Login = () => {
                 );
                 console.log(error);
               }
-              finally{
+              finally {
                 setText("Login");
               }
             }}
@@ -97,9 +96,9 @@ const Login = () => {
                 </button>
                 <div className='flex gap-2 justify-center mt-6'>
                   <span className='font-semibold text-sm text-gray-700'>New user?</span>
-                  <button 
+                  <button
                     type='button'
-                    className='underline text-blue-600 hover:text-blue-700 font-medium text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 rounded px-2 py-1' 
+                    className='underline text-blue-600 hover:text-blue-700 font-medium text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 rounded px-2 py-1'
                     onClick={() => navigate("/sign-up")}
                   >
                     Register
