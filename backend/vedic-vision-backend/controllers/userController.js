@@ -26,21 +26,24 @@ const loginController = expressAsyncHandler(async (req, res) => {
       $or: [{ email: email }, { userName: email }]
     });
     if (user && (await user.matchPassword(password))) {
-      const yoga = await Yoga.findOne({ userId: user._id }).populate('userId');
+      let yoga = await Yoga.findOne({ userId: user._id }).populate('userId');
+      if (!yoga) {
+        yoga = await Yoga.create({ userId: user._id });
+        yoga.userId = user; // Set populated userId manually
+      }
 
       return res.status(200).json({
         id: yoga._id,
-        day: yoga.day,
-        calories: yoga.calories,
-        totalCalories: yoga.totalCalories,
+        day: yoga.day || 1,
+        calories: yoga.calories || 0,
+        totalCalories: yoga.totalCalories || 0,
         userDetails: {
-          id: yoga.userId._id,
-          firstName: yoga.userId.firstName,
-          lastName: yoga.userId.lastName,
-          userName: yoga.userId.userName,
-          phone: yoga.userId.phone,
-          email: yoga.userId.email,
-
+          id: user._id,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          userName: user.userName,
+          phone: user.phone,
+          email: user.email,
         },
         token: generateToken(user._id),
       });
@@ -53,42 +56,31 @@ const loginController = expressAsyncHandler(async (req, res) => {
 });
 
 const registerController = expressAsyncHandler(async (req, res) => {
-  const { firstName, lastName, email, password, userName, phone } = req.body;
-  let user;
-  if (!userName || !email || !password || !lastName || !firstName) {
-    res.send(400)
+  try {
+    const { firstName, lastName, userName, email, password, phone } = req.body;
 
-    // throw error("fields are not filled ")
-  }
-  const userexist = await userModel.findOne({ email })
-  if (userexist) {
-    res.status(401)
-    res.send("email already exist")
-  }
-  const username = await userModel.findOne({ userName })
-  if (username) {
-    res.status(401)
-    res.send("username already exist")
-  }
-  if (!userexist && !username) {
-    user = await userModel.create({ firstName, lastName, userName, email, password, phone })
-    const yogaEntry = await Yoga.create({
-      userId: user._id
-    });
-  }
-  else {
-    res.status(400)
-    res.send("not created")
-  }
-  if (user) {
-    res.status(201).json({ message: "register successsfull" })
-  }
-  else {
-    res.status(400)
-    throw new Error("registration error")
-  }
+    if (!userName || !email || !password || !lastName || !firstName) {
+      return res.status(400).json({ message: "Fields are not filled" });
+    }
 
+    const userNameExist = await User.findOne({ userName });
+    if (userNameExist) {
+      return res.status(409).json({ message: "Username already exists" });
+    }
 
+    const emailExist = await User.findOne({ email });
+    if (emailExist) {
+      return res.status(409).json({ message: "Email already exists" });
+    }
+
+    const user = await User.create({ firstName, lastName, userName, email, password, phone });
+    await Yoga.create({ userId: user._id });
+
+    return res.status(201).json({ message: "Registration successful" });
+  } catch (error) {
+    console.error('Register error:', error);
+    return res.status(500).json({ message: "Server error during registration" });
+  }
 })
 function generateOTP(length = 6) {
   // Ensure the length is at least 1
@@ -106,178 +98,48 @@ const updateCalories = expressAsyncHandler(async (req, res) => {
     const userId = req.user._id;
     const email = req.user.email;
     const userName = `${req.user.firstName} ${req.user.lastName}`;
-    const CALORIES_PER_MINUTE = 5;
-    const prevyoga = await Yoga.findOne(
-      { userId })
-    const total = Number(prevyoga.totalCalories) + Number(score)
+
+    const prevyoga = await Yoga.findOne({ userId });
+    const total = Number(prevyoga.totalCalories || 0) + Number(score);
+
     const updatedYoga = await Yoga.findOneAndUpdate(
       { userId },
       {
         $set: {
           calories: score,
           totalCalories: total
-        }
-      }, // Update the calories field
-      { new: true } // Return the updated document
+        },
+        $inc: { sessionCount: 1 }
+      },
+      { new: true }
     );
 
-    const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      host: 'smtp.gmail.com',
-      port: 587,
-      secure: false, // use SSL
-      auth: {
-        user: process.env.EMAIL,
-        pass: process.env.PASSWORD,
-      }
-    });
+    const { sendSessionSummary } = require('../services/emailService');
+    await sendSessionSummary({ to: email, userName, pose, calories: score });
 
-
-    console.log(email)
-    const otp = generateOTP(6)
-    const yogadata = await Yoga.findOne({ userId })
-    console.log(yogadata)
-    const mailOptions = {
-      from: process.env.email,
-      to: email,
-      subject: 'Your Daily Task Summary',
-      text: `Hi ${userName},\n\nThank you for using our service.\n\nYou completed your tasks today and burned ${yogadata?.calories || '0'} calories.`,
-      html: `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <style>
-        body {
-          font-family: Arial, sans-serif;
-          color: #333;
-        }
-        .container {
-          padding: 20px;
-        }
-        .header {
-          font-size: 18px;
-          font-weight: bold;
-          margin-bottom: 10px;
-        }
-        .otp-code {
-          font-size: 24px;
-          font-weight: bold;
-        }
-        .footer {
-          margin-top: 20px;
-        }
-      </style>
-    </head>
-    <body>
-      <div class="container">
-        <p class="header">Hi ${userName ? userName : "User"},</p>
-        <p>Thank you for using our service.</p>
-        <p>You completed your tasks today and burned <b> ${yogadata?.calories.substr(0, 4) || '0'} calories on pose <b>${pose}</b>.</b></p>
-        <p>Keep up the great work!</p>
-        <div class="footer">
-          <p>Best regards,<br>Your Team DECODERZ</p>
-        </div>
-      </div>
-    </body>
-    </html>
-  `,
-    };
-    await transporter.sendMail(mailOptions, function (error, info) {
-      if (error) {
-        console.log('Error', error);
-        return res.status(400).json({ message: "email  ssend failed" })
-      } else {
-        console.log('Email sent: ' + info.response);
-        return res.status(200).json({ message: "email send" })
-      }
-    })
+    return res.status(200).json({ message: "Calories updated and email sent" });
   } catch (error) {
-    console.log(error)
-    return res.status(400);
+    console.log(error);
+    return res.status(500).json({ message: "Failed to update calories" });
   }
-})
+});
 const sendEmail = expressAsyncHandler(async (req, res) => {
   try {
     const userId = req.user._id;
     const email = req.user.email;
     const userName = `${req.user.firstName} ${req.user.lastName}`;
 
+    const yogadata = await Yoga.findOne({ userId });
 
-    const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      host: 'smtp.gmail.com',
-      port: 587,
-      secure: false, // use SSL
-      auth: {
-        user: process.env.EMAIL,
-        pass: process.env.PASSWORD,
-      }
-    });
+    const { sendProgressSummary } = require('../services/emailService');
+    await sendProgressSummary({ to: email, userName, totalCalories: yogadata?.totalCalories || 0 });
 
-
-    console.log(email)
-    const otp = generateOTP(6)
-    const yogadata = await Yoga.findOne({ userId })
-    console.log(yogadata)
-    const mailOptions = {
-      from: process.env.email,
-      to: email,
-      subject: 'Your Daily Task Summary',
-      text: `Hi ${userName},\n\nThank you for using our service.\n\nYou completed your tasks today and burned ${yogadata?.calories || '0'} calories.`,
-      html: `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <style>
-        body {
-          font-family: Arial, sans-serif;
-          color: #333;
-        }
-        .container {
-          padding: 20px;
-        }
-        .header {
-          font-size: 18px;
-          font-weight: bold;
-          margin-bottom: 10px;
-        }
-        .otp-code {
-          font-size: 24px;
-          font-weight: bold;
-        }
-        .footer {
-          margin-top: 20px;
-        }
-      </style>
-    </head>
-    <body>
-      <div class="container">
-        <p class="header">Hi ${userName ? userName : "User"},</p>
-        <p>Thank you for using our service.</p>
-        <p>You completed your tasks today and burned <b> ${yogadata?.calories || '0'} calories.</b></p>
-        <p>Keep up the great work!</p>
-        <div class="footer">
-          <p>Best regards,<br>Your Team DECODERZ</p>
-        </div>
-      </div>
-    </body>
-    </html>
-  `,
-    };
-    await transporter.sendMail(mailOptions, function (error, info) {
-      if (error) {
-        console.log('Error', error);
-        return res.status(400).json({ message: "email  ssend failed" })
-      } else {
-        console.log('Email sent: ' + info.response);
-        return res.status(200).json({ message: "email send" })
-      }
-    })
+    return res.status(200).json({ message: "Progress email sent" });
   } catch (error) {
-    return res.send(error)
-    console.log(error)
+    console.error(error);
+    return res.status(500).json({ message: "Failed to send progress email" });
   }
-})
+});
 const yogaFetchData = expressAsyncHandler(async (req, res) => {
   try {
     const userId = req.user._id;
@@ -287,8 +149,8 @@ const yogaFetchData = expressAsyncHandler(async (req, res) => {
       lastyoga: yogaData.calories
     })
   } catch (error) {
-    console.log(error)
-    return res.status(400)
+    console.log(error);
+    return res.status(400).json({ message: "Failed to fetch yoga data" });
   }
 })
 module.exports = { loginController, registerController, sendEmail, updateCalories, yogaFetchData }

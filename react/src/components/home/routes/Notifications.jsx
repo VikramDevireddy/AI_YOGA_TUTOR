@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import axios from 'axios';
+import React from 'react';
+import api from '../../../services/api';
 import { FaWhatsapp } from 'react-icons/fa6';
 import toast from 'react-hot-toast';
 
@@ -16,14 +16,14 @@ const Notifications = () => {
 
   const handleSendEmail = async () => {
     const email = localStorage.getItem("email");
-    
+
     if (!email) {
       alert("No email found in localStorage.");
       return;
     }
 
     try {
-      const response = await axios.post(apiEndpoint, { email });
+      const response = await api.post('/api/user/sendotp', { email });
       toast.success('Email sent successfully!');
       console.log(response.data);
     } catch (error) {
@@ -31,10 +31,6 @@ const Notifications = () => {
       toast.error('Failed to send email.');
     }
   };
-
-  useEffect(()=>{
-    handleSendEmail();
-  },[])
   return (
     <div className='min-h-screen flex items-center justify-center bg-gray-100 p-4'>
       <div className='w-full max-w-md rounded-3xl bg-white p-6 shadow-xl'>

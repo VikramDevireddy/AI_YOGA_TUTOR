@@ -8,8 +8,7 @@ import { POINTS, keypointConnections } from '../../utils/data';
 import Start from '../../guidance/start.mp3';
 import Correct from '../../guidance/correct.mp3';
 import Incorrect from '../../guidance/incorrect.mp3';
-import axios from 'axios';
-import { eventMap } from '@testing-library/user-event/dist/cjs/event/eventMap.js';
+import api from '../../services/api';
 import toast from 'react-hot-toast';
 import { useLocation } from 'react-router-dom';
 
@@ -29,16 +28,17 @@ const MET_VALUES = {
   Traingle: 2.5
 };
 
-
-let interval;
-let incorrectInterval;
-let flag = false;
-
 function Yoga() {
   const location = useLocation();
   console.log(location.state.data);
   const webcamRef = useRef(null);
   const canvasRef = useRef(null);
+
+  const intervalRef = useRef(null);
+  const incorrectIntervalRef = useRef(null);
+  const flagRef = useRef(false);
+  const detectorRef = useRef(null);
+  const classifierRef = useRef(null);
 
   const [startingTime, setStartingTime] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
@@ -55,7 +55,7 @@ function Yoga() {
 
   useEffect(() => {
     const timeDiff = (currentTime - startingTime) / 1000;
-    if (flag) {
+    if (flagRef.current) {
       setPoseTime(timeDiff);
     }
     if (timeDiff > bestPerform) {
@@ -85,7 +85,7 @@ function Yoga() {
     const timeInHours = timeInSeconds / 3600;
     return metValue * weightInKg * timeInHours;
   }
-  
+
 
   function get_center_point(landmarks, left_bodypart, right_bodypart) {
     let left = tf.gather(landmarks, left_bodypart, 1);
@@ -110,19 +110,6 @@ function Yoga() {
     return pose_size;
   }
 
-  function speakFeedback(feedback) {
-    if ('speechSynthesis' in window) {
-      const synth = window.speechSynthesis;
-      const utterance = new SpeechSynthesisUtterance(feedback);
-      utterance.lang = 'en-US';
-      utterance.pitch = 1;
-      utterance.rate = 1;
-      synth.speak(utterance);
-    } else {
-      console.warn('Text-to-Speech not supported in this browser.');
-    }
-  }
-
   function normalize_pose_landmarks(landmarks) {
     let pose_center = get_center_point(landmarks, POINTS.LEFT_HIP, POINTS.RIGHT_HIP);
     pose_center = tf.expandDims(pose_center, 1);
@@ -140,6 +127,38 @@ function Yoga() {
     return embedding;
   }
 
+  useEffect(() => {
+    return () => {
+      // Cleanup on unmount
+      clearInterval(intervalRef.current);
+      clearInterval(incorrectIntervalRef.current);
+
+      // Stop camera
+      if (webcamRef.current?.video?.srcObject) {
+        webcamRef.current.video.srcObject.getTracks().forEach(t => t.stop());
+      }
+
+      // Dispose TF models to free GPU memory
+      if (classifierRef.current) {
+        classifierRef.current.dispose();
+        classifierRef.current = null;
+      }
+      if (detectorRef.current && typeof detectorRef.current.dispose === 'function') {
+        detectorRef.current.dispose();
+        detectorRef.current = null;
+      }
+
+      // Clear canvas
+      const canvas = canvasRef.current;
+      if (canvas) {
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }
+
+      flagRef.current = false;
+    };
+  }, []);
+
   const runMovenet = async () => {
     try {
       await tf.setBackend('webgpu');
@@ -155,75 +174,70 @@ function Yoga() {
     const detector = await poseDetection.createDetector(poseDetection.SupportedModels.MoveNet, detectorConfig);
     const poseClassifier = await tf.loadLayersModel('https://models.s3.jp-tok.cloud-object-storage.appdomain.cloud/model.json');
 
-    // countAudio.loop = true;
+    detectorRef.current = detector;
+    classifierRef.current = poseClassifier;
 
-    interval = setInterval(() => {
+    intervalRef.current = setInterval(() => {
       detectPose(detector, poseClassifier);
     }, 50);
 
     // Start continuous feedback for incorrect pose
-    incorrectInterval = setInterval(() => {
-      if (!flag) {
+    incorrectIntervalRef.current = setInterval(() => {
+      if (!flagRef.current) {
         incorrectPoseAudio.play();
       }
     }, 2000); // Play every 1 second
-
-    // correctInterval = setInterval(() => {
-    //   if (flag) {
-    //     correctPoseAudio.play();
-    //   }
-    // }, 4000); 
   };
 
-function giveDynamicFeedback(keypoints) {
-  console.log(keypoints,"posture points"," - is posture correct? ",flag);
-  const leftShoulder = keypoints.find(point => point.name === 'left_shoulder');
-  const rightShoulder = keypoints.find(point => point.name === 'right_shoulder');
-  const nose = keypoints.find(point => point.name === 'nose');
-  const leftEye = keypoints.find(point => point.name === 'left_eye');
-  const rightEye = keypoints.find(point => point.name === 'right_eye');
-  const leftHip = keypoints.find(point => point.name === 'left_hip');
-  const rightHip = keypoints.find(point => point.name === 'right_hip');
+  function giveDynamicFeedback(keypoints) {
+    console.log(keypoints, "posture points", " - is posture correct? ", flagRef.current);
+    const leftShoulder = keypoints.find(point => point.name === 'left_shoulder');
+    const rightShoulder = keypoints.find(point => point.name === 'right_shoulder');
+    const nose = keypoints.find(point => point.name === 'nose');
+    const leftEye = keypoints.find(point => point.name === 'left_eye');
+    const rightEye = keypoints.find(point => point.name === 'right_eye');
+    const leftHip = keypoints.find(point => point.name === 'left_hip');
+    const rightHip = keypoints.find(point => point.name === 'right_hip');
 
-  // Check if the head is too low
-  // if (nose.y > 300) {
-  //   speakFeedback('Raise your head');
-  // }
+    // Check if the head is too low
+    // if (nose.y > 300) {
+    //   speakFeedback('Raise your head');
+    // }
 
-  // // Check if the eyes are not level
-  // if (Math.abs(leftEye.y - rightEye.y) > 20) {
-  //   speakFeedback('Align your head');
-  // }
+    // // Check if the eyes are not level
+    // if (Math.abs(leftEye.y - rightEye.y) > 20) {
+    //   speakFeedback('Align your head');
+    // }
 
-  // // Check if the shoulders are not level
-  // if (Math.abs(leftShoulder.y - rightShoulder.y) > 20) {
-  //   speakFeedback('Straighten your shoulders');
-  // }
+    // // Check if the shoulders are not level
+    // if (Math.abs(leftShoulder.y - rightShoulder.y) > 20) {
+    //   speakFeedback('Straighten your shoulders');
+    // }
 
-  // // Check if the hips are not aligned
-  // if (Math.abs(leftHip.y - rightHip.y) > 20) {
-  //   speakFeedback('Align your hips');
-  // }
-}
-
-function speakFeedback(feedback) {
-  if ('speechSynthesis' in window) {
-    const synth = window.speechSynthesis;
-    const utterance = new SpeechSynthesisUtterance(feedback);
-    utterance.lang = 'en-US';
-    utterance.pitch = 1;
-    utterance.rate = 1;
-    synth.speak(utterance);
-  } else {
-    console.warn('Text-to-Speech not supported in this browser.');
+    // // Check if the hips are not aligned
+    // if (Math.abs(leftHip.y - rightHip.y) > 20) {
+    //   speakFeedback('Align your hips');
+    // }
   }
-}
 
-  
+  function speakFeedback(feedback) {
+    if ('speechSynthesis' in window) {
+      const synth = window.speechSynthesis;
+      const utterance = new SpeechSynthesisUtterance(feedback);
+      utterance.lang = 'en-US';
+      utterance.pitch = 1;
+      utterance.rate = 1;
+      synth.speak(utterance);
+    } else {
+      console.warn('Text-to-Speech not supported in this browser.');
+    }
+  }
+
+
   const detectPose = async (detector, poseClassifier) => {
-    
+
     if (
-     
+
       typeof webcamRef.current !== "undefined" &&
       webcamRef.current !== null &&
       webcamRef.current.video.readyState === 4
@@ -234,14 +248,14 @@ function speakFeedback(feedback) {
       if (!pose || pose.length === 0 || !pose[0].keypoints) {
         return;
       }
-  
+
       const ctx = canvasRef.current?.getContext('2d');
       if (!ctx) return;
       ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
-  
+
       try {
         const keypoints = pose[0]?.keypoints;
-        console.log(keypoints," keypoints srkr")
+        console.log(keypoints, " keypoints srkr")
         let input = keypoints?.map((keypoint) => {
           if (keypoint.score > 0.4) {
             if (!(keypoint.name === 'left_eye' || keypoint.name === 'right_eye')) {
@@ -264,33 +278,33 @@ function speakFeedback(feedback) {
           }
           return [keypoint.x, keypoint.y];
         });
-  
+
         if (notDetected > 2) {
           skeletonColor = 'rgb(255,255,255)';
           return;
         }
-  
+
         const processedInput = landmarks_to_embedding(input);
         const classification = poseClassifier.predict(processedInput);
-  
+
         classification.array().then((data) => {
           const classNo = CLASS_NO[currentPose];
           console.log(data[0][classNo]);
           if (data[0][classNo] > 0.97) {
-            if (!flag) {
+            if (!flagRef.current) {
               startAudio.play();
               countAudio.play();
               setStartingTime(new Date().getTime());
-              flag = true;
+              flagRef.current = true;
               skeletonColor = 'rgb(0,255,0)';
               correctPoseAudio.play();
             }
             setCurrentTime(new Date().getTime());
-            console.log(keypoints,"points true")
+            console.log(keypoints, "points true")
           } else {
-            flag = false;
+            flagRef.current = false;
             skeletonColor = 'rgb(255,255,255)';
-            console.log(keypoints,"points false")
+            console.log(keypoints, "points false")
             giveDynamicFeedback(keypoints); // Call feedback function when the pose is incorrect
           }
         });
@@ -299,39 +313,37 @@ function speakFeedback(feedback) {
       }
     }
   };
-  
+
   function startYoga() {
     setIsStartPose(true);
     runMovenet();
   }
 
   async function stopPose() {
-    const caloriesBurned =  calculateCalories(currentPose, bestPerform);
+    clearInterval(intervalRef.current);
+    clearInterval(incorrectIntervalRef.current);
+    intervalRef.current = null;
+    incorrectIntervalRef.current = null;
+
+    const caloriesBurned = calculateCalories(currentPose, bestPerform);
     const data = {
-      userId: localStorage.getItem("userId"),
       time: bestPerform,
       pose: currentPose,
-      score:caloriesBurned,
-      email: localStorage.getItem("email"),
-      userName:localStorage.getItem("username")
+      score: caloriesBurned
     };
-    try{
-    const res =  await axios.post("https://vedic-vision-backend.onrender.com/api/user/updatecal", data,{
-      headers:{
-        "Content-Type": "application/json"
-      }
-    });
-    toast.success("Data sent to your email");
-  }
-  catch(err){
+    try {
+      const res = await api.post("/api/user/updatecal", data);
+      toast.success("Data sent to your email");
+    }
+    catch (err) {
       toast.error("Something went wrong");
-  }
-    
+    }
 
-    console.log(bestPerform," time");
+
+    console.log(bestPerform, " time");
     setIsStartPose(false);
-    
-    
+
+
     if (canvasRef.current) {
       const ctx = canvasRef.current.getContext('2d');
       ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
@@ -349,7 +361,7 @@ function speakFeedback(feedback) {
     incorrectPoseAudio.pause();
     incorrectPoseAudio.currentTime = 0;
 
-    
+
 
   }
 
@@ -367,7 +379,7 @@ function speakFeedback(feedback) {
         <div>
           <Webcam
             width='640px'
-            height='480px'  
+            height='480px'
             id="webcam"
             ref={webcamRef}
             style={{
@@ -395,7 +407,7 @@ function speakFeedback(feedback) {
           ></canvas>
         </div>
         <div className="pose-selection">
-        {/* <select
+          {/* <select
       value={currentPose}
       onChange={(e) => setCurrentPose(e.target.value)} 
     >
@@ -407,8 +419,8 @@ function speakFeedback(feedback) {
     </select> */}
           <Instructions currentPose={currentPose} />
         </div>
-        <div className="footer" style={{display:'flex',justifyContent:'center',alignItems:'center', marginTop:30}}>
-          <button onClick={()=>stopPose()} className="secondary-btn bg-black text-white px-5 py-2 mt-5 rounded-lg  font-semibold">Stop</button>
+        <div className="footer" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', marginTop: 30 }}>
+          <button onClick={() => stopPose()} className="secondary-btn bg-black text-white px-5 py-2 mt-5 rounded-lg  font-semibold">Stop</button>
         </div>
       </div>
     );
@@ -418,7 +430,7 @@ function speakFeedback(feedback) {
     <div className="yoga-container">
       <div className="pose-selection">
         <span className='font-semibold text-center text-lg'>{location.state.data.title} Pose</span>
-      {/* <select
+        {/* <select
       value={currentPose}
       onChange={(e) => setCurrentPose(e.target.value)} 
     >
@@ -430,7 +442,7 @@ function speakFeedback(feedback) {
     </select> */}
         <Instructions currentPose={currentPose} />
       </div>
-      <div className="footer" style={{display:'flex',justifyContent:'center',alignItems:'center'}}>
+      <div className="footer" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
         <button onClick={startYoga} className="primary-btn bg-black text-white px-10 py-2 mt-5 rounded-lg  font-semibold z-50">Start</button>
       </div>
     </div>
