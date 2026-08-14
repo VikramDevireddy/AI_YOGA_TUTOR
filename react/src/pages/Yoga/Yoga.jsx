@@ -10,13 +10,10 @@ import Correct from '../../guidance/correct.mp3';
 import Incorrect from '../../guidance/incorrect.mp3';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { FaPlay, FaStop, FaBrain, FaClock, FaTrophy, FaArrowLeft } from 'react-icons/fa6';
 
 let skeletonColor = 'rgb(255,255,255)';
-let poseList = [
-  'Tree', 'Chair', 'Cobra', 'Warrior', 'Dog',
-  'Shoulderstand', 'Traingle'
-];
 
 const MET_VALUES = {
   Tree: 2.5,
@@ -30,9 +27,10 @@ const MET_VALUES = {
 
 function Yoga() {
   const location = useLocation();
-  console.log(location.state.data);
+  const nav = useNavigate();
   const webcamRef = useRef(null);
   const canvasRef = useRef(null);
+  const containerRef = useRef(null);
 
   const intervalRef = useRef(null);
   const incorrectIntervalRef = useRef(null);
@@ -44,8 +42,10 @@ function Yoga() {
   const [currentTime, setCurrentTime] = useState(0);
   const [poseTime, setPoseTime] = useState(0);
   const [bestPerform, setBestPerform] = useState(0);
-  const [currentPose, setCurrentPose] = useState(location.state.data.title);
+  const [currentPose, setCurrentPose] = useState(location?.state?.data?.title || 'Tree');
   const [isStartPose, setIsStartPose] = useState(false);
+  const [isAiLoading, setIsAiLoading] = useState(false);
+  const [isCorrectPose, setIsCorrectPose] = useState(false);
 
   // Audio files
   const countAudio = new Audio(Start);
@@ -81,11 +81,10 @@ function Yoga() {
   };
 
   function calculateCalories(pose, timeInSeconds, weightInKg = 70) {
-    const metValue = MET_VALUES[pose];
+    const metValue = MET_VALUES[pose] || 2.5;
     const timeInHours = timeInSeconds / 3600;
     return metValue * weightInKg * timeInHours;
   }
-
 
   function get_center_point(landmarks, left_bodypart, right_bodypart) {
     let left = tf.gather(landmarks, left_bodypart, 1);
@@ -100,12 +99,9 @@ function Yoga() {
     let torso_size = tf.norm(tf.sub(shoulders_center, hips_center));
     let pose_center_new = get_center_point(landmarks, POINTS.LEFT_HIP, POINTS.RIGHT_HIP);
     pose_center_new = tf.expandDims(pose_center_new, 1);
-
     pose_center_new = tf.broadcastTo(pose_center_new, [1, 17, 2]);
-
     let d = tf.gather(tf.sub(landmarks, pose_center_new), 0, 0);
     let max_dist = tf.max(tf.norm(d, 'euclidean', 0));
-
     let pose_size = tf.maximum(tf.mul(torso_size, torso_size_multiplier), max_dist);
     return pose_size;
   }
@@ -115,7 +111,6 @@ function Yoga() {
     pose_center = tf.expandDims(pose_center, 1);
     pose_center = tf.broadcastTo(pose_center, [1, 17, 2]);
     landmarks = tf.sub(landmarks, pose_center);
-
     let pose_size = get_pose_size(landmarks);
     landmarks = tf.div(landmarks, pose_size);
     return landmarks;
@@ -129,46 +124,39 @@ function Yoga() {
 
   useEffect(() => {
     return () => {
-      // Cleanup on unmount
       clearInterval(intervalRef.current);
       clearInterval(incorrectIntervalRef.current);
 
-      // Stop camera
       if (webcamRef.current?.video?.srcObject) {
         webcamRef.current.video.srcObject.getTracks().forEach(t => t.stop());
       }
 
-      // Dispose TF models to free GPU memory
       if (classifierRef.current) {
         classifierRef.current.dispose();
-        classifierRef.current = null;
       }
       if (detectorRef.current && typeof detectorRef.current.dispose === 'function') {
         detectorRef.current.dispose();
-        detectorRef.current = null;
-      }
-
-      // Clear canvas
-      const canvas = canvasRef.current;
-      if (canvas) {
-        const ctx = canvas.getContext('2d');
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
       }
 
       flagRef.current = false;
     };
   }, []);
 
-  const [isAiLoading, setIsAiLoading] = useState(false);
+  const resizeCanvas = () => {
+    if (webcamRef.current && canvasRef.current && containerRef.current) {
+      const video = webcamRef.current.video;
+      const canvas = canvasRef.current;
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+    }
+  }
 
   const runMovenet = async () => {
     setIsAiLoading(true);
     try {
       await tf.setBackend('webgpu');
       await tf.ready();
-      console.log("WebGPU backend Ready, Proceeding Further...");
     } catch (err) {
-      console.warn("WebGPU backend not available. Rectifying Error...");
       await tf.setBackend('cpu');
       await tf.ready();
     }
@@ -187,73 +175,33 @@ function Yoga() {
       detectPose(detector, poseClassifier);
     }, 50);
 
-    // Start continuous feedback for incorrect pose
     incorrectIntervalRef.current = setInterval(() => {
-      if (!flagRef.current) {
-        incorrectPoseAudio.play();
+      if (!flagRef.current && isStartPose) {
+        incorrectPoseAudio.play().catch(e => console.log(e));
       }
-    }, 2000); // Play every 1 second
+    }, 3000);
   };
 
   function giveDynamicFeedback(keypoints) {
-    console.log(keypoints, "posture points", " - is posture correct? ", flagRef.current);
-    const leftShoulder = keypoints.find(point => point.name === 'left_shoulder');
-    const rightShoulder = keypoints.find(point => point.name === 'right_shoulder');
-    const nose = keypoints.find(point => point.name === 'nose');
-    const leftEye = keypoints.find(point => point.name === 'left_eye');
-    const rightEye = keypoints.find(point => point.name === 'right_eye');
-    const leftHip = keypoints.find(point => point.name === 'left_hip');
-    const rightHip = keypoints.find(point => point.name === 'right_hip');
-
-    // Check if the head is too low
-    // if (nose.y > 300) {
-    //   speakFeedback('Raise your head');
-    // }
-
-    // // Check if the eyes are not level
-    // if (Math.abs(leftEye.y - rightEye.y) > 20) {
-    //   speakFeedback('Align your head');
-    // }
-
-    // // Check if the shoulders are not level
-    // if (Math.abs(leftShoulder.y - rightShoulder.y) > 20) {
-    //   speakFeedback('Straighten your shoulders');
-    // }
-
-    // // Check if the hips are not aligned
-    // if (Math.abs(leftHip.y - rightHip.y) > 20) {
-    //   speakFeedback('Align your hips');
-    // }
+    // Basic dynamic feedback stub
   }
-
-  function speakFeedback(feedback) {
-    if ('speechSynthesis' in window) {
-      const synth = window.speechSynthesis;
-      const utterance = new SpeechSynthesisUtterance(feedback);
-      utterance.lang = 'en-US';
-      utterance.pitch = 1;
-      utterance.rate = 1;
-      synth.speak(utterance);
-    } else {
-      console.warn('Text-to-Speech not supported in this browser.');
-    }
-  }
-
 
   const detectPose = async (detector, poseClassifier) => {
-
     if (
-
       typeof webcamRef.current !== "undefined" &&
       webcamRef.current !== null &&
       webcamRef.current.video.readyState === 4
     ) {
       let notDetected = 0;
       const video = webcamRef.current.video;
-      const pose = await detector.estimatePoses(video);
-      if (!pose || pose.length === 0 || !pose[0].keypoints) {
-        return;
+
+      // Match canvas dimensions to video automatically
+      if (canvasRef.current.width !== video.videoWidth) {
+        resizeCanvas();
       }
+
+      const pose = await detector.estimatePoses(video);
+      if (!pose || pose.length === 0 || !pose[0].keypoints) return;
 
       const ctx = canvasRef.current?.getContext('2d');
       if (!ctx) return;
@@ -261,23 +209,21 @@ function Yoga() {
 
       try {
         const keypoints = pose[0]?.keypoints;
-        console.log(keypoints, " keypoints srkr")
         let input = keypoints?.map((keypoint) => {
           if (keypoint.score > 0.4) {
             if (!(keypoint.name === 'left_eye' || keypoint.name === 'right_eye')) {
-              drawPoint(ctx, keypoint.x, keypoint.y, 8, 'rgb(255,255,255)');
+              drawPoint(ctx, keypoint.x, keypoint.y, 8, skeletonColor);
               let connections = keypointConnections[keypoint.name];
               try {
                 connections?.forEach((connection) => {
                   let conName = connection.toUpperCase();
-                  drawSegment(ctx, [keypoint.x, keypoint.y],
-                    [keypoints[POINTS[conName]].x,
-                    keypoints[POINTS[conName]].y]
-                    , skeletonColor);
+                  if (keypoints[POINTS[conName]]) {
+                    drawSegment(ctx, [keypoint.x, keypoint.y],
+                      [keypoints[POINTS[conName]].x,
+                      keypoints[POINTS[conName]].y], skeletonColor);
+                  }
                 });
-              } catch (err) {
-                console.error(err);
-              }
+              } catch (err) { }
             }
           } else {
             notDetected += 1;
@@ -285,8 +231,9 @@ function Yoga() {
           return [keypoint.x, keypoint.y];
         });
 
-        if (notDetected > 2) {
+        if (notDetected > 4) {
           skeletonColor = 'rgb(255,255,255)';
+          setIsCorrectPose(false);
           return;
         }
 
@@ -295,26 +242,23 @@ function Yoga() {
 
         classification.array().then((data) => {
           const classNo = CLASS_NO[currentPose];
-          console.log(data[0][classNo]);
           if (data[0][classNo] > 0.97) {
             if (!flagRef.current) {
-              startAudio.play();
-              countAudio.play();
+              startAudio.play().catch(e => console.log(e));
               setStartingTime(new Date().getTime());
               flagRef.current = true;
-              skeletonColor = 'rgb(0,255,0)';
-              correctPoseAudio.play();
+              skeletonColor = 'rgb(34, 197, 94)'; // Tailwind green-500
+              correctPoseAudio.play().catch(e => console.log(e));
+              setIsCorrectPose(true);
             }
             setCurrentTime(new Date().getTime());
-            console.log(keypoints, "points true");
           } else {
             flagRef.current = false;
             skeletonColor = 'rgb(255,255,255)';
-            console.log(keypoints, "points false");
-            giveDynamicFeedback(keypoints); // Call feedback function when the pose is incorrect
+            setIsCorrectPose(false);
+            giveDynamicFeedback(keypoints);
           }
         }).finally(() => {
-          // Prevent memory leak
           processedInput.dispose();
           classification.dispose();
         });
@@ -324,16 +268,20 @@ function Yoga() {
     }
   };
 
-  function startYoga() {
+  const startYoga = () => {
     setIsStartPose(true);
-    runMovenet();
+    // Add small delay to ensure DOM is ready for camera
+    setTimeout(() => {
+      runMovenet();
+    }, 100);
   }
 
-  async function stopPose() {
+  const stopPose = async () => {
     clearInterval(intervalRef.current);
     clearInterval(incorrectIntervalRef.current);
     intervalRef.current = null;
     incorrectIntervalRef.current = null;
+    flagRef.current = false;
 
     const caloriesBurned = calculateCalories(currentPose, bestPerform);
     const data = {
@@ -341,125 +289,159 @@ function Yoga() {
       pose: currentPose,
       score: caloriesBurned
     };
-    try {
-      const res = await api.post("/api/user/updatecal", data);
-      toast.success("Data sent to your email");
-    }
-    catch (err) {
-      toast.error("Something went wrong");
+
+    if (bestPerform > 2) {
+      try {
+        await api.post("/api/user/updatecal", data);
+        toast.success("Progress saved successfully!");
+      } catch (err) {
+        toast.error("Failed to save progress");
+      }
     }
 
-
-    console.log(bestPerform, " time");
     setIsStartPose(false);
-
+    setIsCorrectPose(false);
+    skeletonColor = 'rgb(255,255,255)';
 
     if (canvasRef.current) {
       const ctx = canvasRef.current.getContext('2d');
       ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
     }
-    if (webcamRef.current) {
-      webcamRef.current.video.srcObject.getTracks()?.forEach(track => track.stop());
+
+    // Attempt to stop camera tracks properly
+    if (webcamRef.current?.video?.srcObject) {
+      const stream = webcamRef.current.video.srcObject;
+      const tracks = stream.getTracks();
+      tracks.forEach(track => {
+        track.stop();
+      });
+      webcamRef.current.video.srcObject = null;
     }
-    // Stop all audio
-    countAudio.pause();
-    countAudio.currentTime = 0;
-    startAudio.pause();
-    startAudio.currentTime = 0;
-    correctPoseAudio.pause();
-    correctPoseAudio.currentTime = 0;
-    incorrectPoseAudio.pause();
-    incorrectPoseAudio.currentTime = 0;
 
-
-
-  }
-
-  if (isStartPose) {
-    return (
-      <div className="yoga-container">
-        <div className="performance-container">
-          <div className="pose-performance">
-            <h4>Pose Time: {poseTime} s</h4>
-          </div>
-          <div className="pose-performance">
-            <h4>Best: {bestPerform} s</h4>
-          </div>
-        </div>
-        <div>
-          <Webcam
-            width='640px'
-            height='480px'
-            id="webcam"
-            ref={webcamRef}
-            style={{
-              position: 'absolute',
-              padding: '0px',
-              left: '35.5%',
-              top: '47%',
-              transform: 'translate(-50%, -50%)',
-              zIndex: 9,
-              visibility: isStartPose ? 'visible' : 'hidden'
-            }}
-          />
-          <canvas
-            ref={canvasRef}
-            id="my-canvas"
-            width='640px'
-            height='480px'
-            style={{
-              position: 'absolute',
-              left: '35.5%',
-              top: '47%',
-              transform: 'translate(-50%, -50%)',
-              zIndex: 9,
-            }}
-          ></canvas>
-        </div>
-        <div className="pose-selection">
-          {/* <select
-      value={currentPose}
-      onChange={(e) => setCurrentPose(e.target.value)} 
-    >
-      {poseList?.map((pose) => (
-        <option key={pose} value={pose}>
-          {pose}
-        </option>
-      ))}
-    </select> */}
-          <Instructions currentPose={currentPose} />
-        </div>
-        <div className="footer" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', marginTop: 30 }}>
-          <button onClick={() => stopPose()} className="secondary-btn bg-black text-white px-5 py-2 mt-5 rounded-lg  font-semibold">Stop</button>
-        </div>
-      </div>
-    );
+    // Stop all audio cleanly
+    try {
+      countAudio.pause(); countAudio.currentTime = 0;
+      startAudio.pause(); startAudio.currentTime = 0;
+      correctPoseAudio.pause(); correctPoseAudio.currentTime = 0;
+      incorrectPoseAudio.pause(); incorrectPoseAudio.currentTime = 0;
+    } catch (e) { }
   }
 
   return (
-    <div className="yoga-container">
-      <div className="pose-selection">
-        <span className='font-semibold text-center text-lg'>{location.state.data.title} Pose</span>
-        {/* <select
-      value={currentPose}
-      onChange={(e) => setCurrentPose(e.target.value)} 
-    >
-      {poseList?.map((pose) => (
-        <option key={pose} value={pose}>
-          {pose}
-        </option>
-      ))}
-    </select> */}
-        <Instructions currentPose={currentPose} />
-      </div>
-      <div className="footer" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-        <button
-          onClick={isAiLoading ? null : startYoga}
-          className={`primary-btn bg-black text-white px-10 py-2 mt-5 rounded-lg font-semibold z-50 ${isAiLoading ? 'opacity-50 cursor-wait' : ''}`}
-          disabled={isAiLoading}
-        >
-          {isAiLoading ? 'Loading AI Model...' : 'Start'}
+    <div className="w-full flex-1">
+      {/* Header section with back button and title */}
+      <div className="flex items-center justify-between mb-6">
+        <button onClick={() => isStartPose ? stopPose() : nav(-1)} className="p-2 rounded-xl text-gray-500 hover:bg-white/50 hover:text-gray-800 transition-colors">
+          <FaArrowLeft className="text-xl" />
         </button>
+        <h1 className="text-2xl font-display font-bold text-gray-900 bg-white/40 px-6 py-2 rounded-2xl border border-white/50 shadow-sm backdrop-blur-md">
+          {currentPose} Pose Session
+        </h1>
+        <div className="w-10"></div> {/* Spacer for centering */}
+      </div>
+
+      <div className="flex flex-col lg:flex-row gap-6">
+
+        {/* Left Side: Camera or Pre-start State */}
+        <div className="flex-[2] flex flex-col gap-6">
+          <div className={`glass-card p-4 relative overflow-hidden flex flex-col items-center justify-center min-h-[400px] md:min-h-[500px] bg-gray-900 shadow-glass-strong border-gray-700/50 ${isCorrectPose ? 'ring-4 ring-green-500/50' : 'ring-1 ring-white/10'}`}>
+
+            {!isStartPose ? (
+              <div className="flex flex-col items-center justify-center text-center p-8 bg-gray-800/80 rounded-2xl border border-gray-700 w-full h-full max-w-md mx-auto backdrop-blur-sm z-10 my-10">
+                <div className="w-20 h-20 bg-primary-500/20 rounded-full flex items-center justify-center mb-6">
+                  <FaBrain className="text-4xl text-primary-400" />
+                </div>
+                <h2 className="text-2xl font-bold text-white mb-3">AI Vision Ready</h2>
+                <p className="text-gray-400 mb-8 max-w-sm">Position your device so your full body is visible in the frame. The AI will guide your posture automatically.</p>
+
+                <button
+                  onClick={isAiLoading ? null : startYoga}
+                  disabled={isAiLoading}
+                  className={`w-full max-w-xs flex items-center justify-center gap-3 py-4 px-6 rounded-xl font-bold text-lg text-white shadow-xl transition-all ${isAiLoading ? 'bg-gray-600 cursor-wait' : 'bg-gradient-to-r from-primary-500 to-accent hover:shadow-primary-500/25 hover:-translate-y-1'}`}
+                >
+                  {isAiLoading ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                      Loading Engine...
+                    </>
+                  ) : (
+                    <>
+                      <FaPlay /> Start Session
+                    </>
+                  )}
+                </button>
+              </div>
+            ) : (
+              <div ref={containerRef} className="relative w-full h-full flex items-center justify-center rounded-xl overflow-hidden bg-black object-contain aspect-video">
+                {isAiLoading && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-900/80 z-20 backdrop-blur-sm">
+                    <div className="w-10 h-10 border-4 border-primary-500/30 border-t-primary-500 rounded-full animate-spin mb-4"></div>
+                    <p className="text-white font-medium">Initializing Vision Model...</p>
+                  </div>
+                )}
+
+                {/* Status Overlay */}
+                <div className="absolute top-4 left-4 z-20 flex gap-2">
+                  <div className={`px-3 py-1.5 rounded-lg text-sm font-bold shadow-md flex items-center gap-2 backdrop-blur-md border ${isCorrectPose ? 'bg-green-500/20 text-green-400 border-green-500/30' : 'bg-gray-800/60 text-gray-300 border-gray-600/50'}`}>
+                    <div className={`w-2 h-2 rounded-full ${isCorrectPose ? 'bg-green-400 animate-pulse' : 'bg-gray-400'}`}></div>
+                    {isCorrectPose ? 'Perfect Alignment' : 'Adjusting Pose...'}
+                  </div>
+                </div>
+
+                <Webcam
+                  ref={webcamRef}
+                  mirrored={true}
+                  className="absolute w-full h-full object-contain"
+                />
+                <canvas
+                  ref={canvasRef}
+                  className="absolute w-full h-full object-contain z-10"
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Metrics Bar */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="glass-card p-5 bg-white/60 flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-orange-100 flex items-center justify-center text-orange-500 text-xl">
+                <FaClock />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-500">Current Hold</p>
+                <p className="text-2xl font-display font-bold text-gray-900">{poseTime.toFixed(1)}<span className="text-lg text-gray-400 font-medium ml-1">s</span></p>
+              </div>
+            </div>
+            <div className="glass-card p-5 bg-white/60 flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center text-blue-500 text-xl">
+                <FaTrophy />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-500">Best Record</p>
+                <p className="text-2xl font-display font-bold text-gray-900">{bestPerform.toFixed(1)}<span className="text-lg text-gray-400 font-medium ml-1">s</span></p>
+              </div>
+            </div>
+          </div>
+
+          {isStartPose && (
+            <div className="flex justify-center mt-2">
+              <button
+                onClick={stopPose}
+                className="flex items-center gap-2 px-8 py-3 bg-red-500 hover:bg-red-600 text-white rounded-xl font-bold shadow-lg shadow-red-500/20 transition-all hover:-translate-y-1"
+              >
+                <FaStop /> End Session & Save
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Right Side: Instructions */}
+        <div className="flex-1 lg:max-w-sm flex flex-col gap-6">
+          <div className="glass-card p-6 bg-white/60 h-full">
+            <Instructions currentPose={currentPose} />
+          </div>
+        </div>
+
       </div>
     </div>
   );

@@ -4,26 +4,80 @@
 
 
 :root {
-  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
   line-height: 1.5;
   font-weight: 400;
-
   color-scheme: light dark;
-
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  --bg-color: #f9fafb;
+  --text-color: #111827;
 }
 
-.active{
-  @apply font-bold text-black
+body {
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
 }
 
-.common-height{
-  min-height: calc(100vh - 48px);
+/* Glassmorphism Utilities */
+.glass {
+  @apply bg-white/70 backdrop-blur-md border border-white/20 shadow-glass;
 }
-.unsecured-common-height{
-  min-height: calc(100vh - 66px);
+.glass-dark {
+  @apply bg-gray-900/70 backdrop-blur-md border border-gray-700/50 shadow-glass-strong text-white;
+}
+.glass-card {
+  @apply bg-white/60 backdrop-blur-lg border border-white/40 shadow-soft hover:shadow-glass transition-all duration-300 rounded-2xl;
+}
+.glass-input {
+  @apply bg-white/50 backdrop-blur-sm border border-gray-200/50 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-all rounded-xl w-full px-4 py-3 outline-none;
+}
+.glass-button {
+  @apply bg-primary-600/90 hover:bg-primary-500 backdrop-blur-md text-white font-medium shadow-soft hover:shadow-glass-strong transition-all duration-300 rounded-xl px-6 py-3 active:scale-95 flex items-center justify-center gap-2;
+}
+.glass-button-secondary {
+  @apply bg-white/80 hover:bg-white backdrop-blur-md text-gray-800 border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300 rounded-xl px-6 py-3 active:scale-95 flex items-center justify-center gap-2;
+}
+
+/* Navigation Utilities */
+.nav-link {
+  @apply text-gray-600 hover:text-primary-600 transition-colors duration-200 font-medium px-3 py-2 rounded-lg hover:bg-primary-50/50 relative;
+}
+.active {
+  @apply text-primary-600 font-semibold bg-primary-50;
+}
+.active::after {
+  content: '';
+  @apply absolute bottom-0 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-primary-600;
+}
+
+.common-height {
+  min-height: calc(100vh - 64px);
+}
+.unsecured-common-height {
+  min-height: calc(100vh - 80px);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-gray-300 rounded-full hover:bg-gray-400 transition-colors;
+}
+
+/* Custom Backgrounds for Hero Sections */
+.hero-gradient {
+  background: radial-gradient(circle at top right, rgba(139, 92, 246, 0.15), transparent 40%),
+              radial-gradient(circle at bottom left, rgba(236, 72, 153, 0.1), transparent 40%);
 }
 
